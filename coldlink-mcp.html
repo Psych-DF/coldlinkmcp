@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coldlink MCP Query Tool</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 2rem;
+    }
+    input, button {
+      padding: 0.5rem;
+      margin-top: 1rem;
+      width: 100%;
+      font-size: 1rem;
+    }
+    pre {
+      background: #222;
+      padding: 1rem;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Coldlink MCP Interface</h1>
+  <p>Enter an MCP-style query JSON below:</p>
+  <textarea id="queryInput" rows="10" style="width: 100%; font-family: monospace;"></textarea>
+  <button onclick="handleQuery()">Submit Query</button>
+  <button onclick="showMCPInfo()">Show MCP Info</button>
+  <h2>Response</h2>
+  <pre id="responseArea">Waiting for input...</pre>
+
+  <script>
+    async function handleQuery() {
+      const inputEl = document.getElementById('queryInput');
+      const outputEl = document.getElementById('responseArea');
+
+      let input;
+      try {
+        input = JSON.parse(inputEl.value);
+      } catch (e) {
+        outputEl.textContent = 'Invalid JSON input.';
+        return;
+      }
+
+      const params = new URLSearchParams(input.input);
+      const apiUrl = `https://api.coldlink.xyz/v1/coldlinks?${params.toString()}`;
+
+      try {
+        const res = await fetch(apiUrl, {
+          headers: {
+            'x-api-key': '2230c6294d0f305c399e183ac5d75bb3'
+          }
+        });
+
+        if (!res.ok) throw new Error('API request failed.');
+        const data = await res.json();
+        outputEl.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        outputEl.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    // Expose the MCP info.json from embedded script
+    window.getMCPInfo = function() {
+      const scriptTag = document.getElementById('mcp-info');
+      try {
+        return JSON.parse(scriptTag.textContent);
+      } catch (e) {
+        return { error: 'Invalid MCP info JSON' };
+      }
+    };
+
+    function showMCPInfo() {
+      const outputEl = document.getElementById('responseArea');
+      const info = window.getMCPInfo();
+      outputEl.textContent = JSON.stringify(info, null, 2);
+    }
+  </script>
+
+  <!-- Embedded MCP info.json -->
+  <script type="application/json" id="mcp-info">
+  {
+    "id": "coldlink-query",
+    "name": "Coldlink Query Tool",
+    "description": "A frontend interface to query Coldlink API using MCP-style JSON inputs.",
+    "version": "1.0.0",
+    "authentication": "api_key",
+    "schema": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "source_wallet": { "type": "string", "description": "Source wallet address" },
+          "source_type": {
+            "type": "string",
+            "enum": ["eth", "sol"],
+            "description": "Type of source wallet"
+          },
+          "linked_wallet": { "type": "string", "description": "Linked wallet address" },
+          "linked_type": {
+            "type": "string",
+            "enum": ["eth", "sol"],
+            "description": "Type of linked wallet"
+          },
+          "cursor": { "type": "string", "description": "Pagination cursor" },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 }
+        }
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "link_uuid": { "type": "string" },
+                "source_wallet": { "type": "string" },
+                "source_type": { "type": "string" },
+                "source_network": { "type": "string" },
+                "linked_wallet": { "type": "string" },
+                "linked_type": { "type": "string" },
+                "linked_network": { "type": "string" },
+                "created_at": { "type": "string", "format": "date-time" },
+                "verified": { "type": "boolean" }
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "totalCount": { "type": "integer" },
+              "pageSize": { "type": "integer" },
+              "hasNextPage": { "type": "boolean" },
+              "nextCursor": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+  </script>
+</body>
+</html>
